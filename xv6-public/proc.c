@@ -252,6 +252,8 @@ clone(void (*fn)(void*), void* stack, void* arg)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  // p5 set init nice value to 0
+  np->nice = 0;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -403,10 +405,22 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    // p5
+    // Find the process with the lowest nice value
+    int lowest_priority = 20;
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if (p->state != RUNNABLE)
+        continue;
+      if (p->nice < lowest_priority) {
+        lowest_priority = p->nice;
+      }
+    }
+    
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-
+      if (p->nice != lowest_priority)
+        continue;
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.

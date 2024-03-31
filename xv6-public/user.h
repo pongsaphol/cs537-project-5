@@ -43,3 +43,4 @@ int atoi(const char*);
 void minit(mutex*);
 int macquire(mutex*);
 int mrelease(mutex*);
+int nice(int);

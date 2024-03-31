@@ -473,3 +473,19 @@ sys_mrelease(void) {
   wakeup(m);
   return 0;
 }
+
+int sys_nice(void) {
+  int n;
+  if (argint(0, &n) < 0) {
+    return -1;
+  }
+  // TODO: Implement nice
+  struct proc* p = myproc();
+  p->nice += n;
+  if (p->nice < -20) {
+    p->nice = -20;
+  } else if (p->nice > 19) {
+    p->nice = 19;
+  } 
+  return 0;
+}
