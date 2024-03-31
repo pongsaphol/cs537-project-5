@@ -38,3 +38,8 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+// p5
+void minit(mutex*);
+int macquire(mutex*);
+int mrelease(mutex*);

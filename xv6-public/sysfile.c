@@ -442,3 +442,34 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+int
+sys_macquire(void) {
+  mutex* m;
+  if (argptr(0, (void*)&m, sizeof(*m)) < 0)
+    return -1;
+
+  while (m->locked) {
+    if (m->pid == myproc()->pid) {
+      return -1;
+    }
+    sleep(m, 0);
+  }
+
+  m->locked = 1;
+  m->pid = myproc()->pid;
+  return 0;
+}
+
+int
+sys_mrelease(void) {
+  mutex* m;
+  if (argptr(0, (void*)&m, sizeof(*m)) < 0 || !m->locked || m->pid != myproc()->pid) {
+    return -1;
+  }
+
+  m->locked = 0;
+  m->pid = 0;
+  wakeup(m);
+  return 0;
+}
