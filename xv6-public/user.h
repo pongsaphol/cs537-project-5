@@ -1,3 +1,5 @@
+#include "mutex.h"
+
 struct stat;
 struct rtcdate;
 

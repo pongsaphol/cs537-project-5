@@ -13,6 +13,7 @@
 #include "fs.h"
 #include "spinlock.h"
 #include "sleeplock.h"
+#include "mutex.h"
 #include "file.h"
 #include "fcntl.h"
 
@@ -449,15 +450,14 @@ sys_macquire(void) {
   if (argptr(0, (void*)&m, sizeof(*m)) < 0)
     return -1;
 
+  acquire(&m->lk);
   while (m->locked) {
-    if (m->pid == myproc()->pid) {
-      return -1;
-    }
-    sleep(m, 0);
+    sleep(m, &m->lk);
   }
 
   m->locked = 1;
   m->pid = myproc()->pid;
+  release(&m->lk);
   return 0;
 }
 
@@ -467,10 +467,12 @@ sys_mrelease(void) {
   if (argptr(0, (void*)&m, sizeof(*m)) < 0 || !m->locked || m->pid != myproc()->pid) {
     return -1;
   }
-
+  
+  acquire(&m->lk);
   m->locked = 0;
   m->pid = 0;
   wakeup(m);
+  release(&m->lk);
   return 0;
 }
 

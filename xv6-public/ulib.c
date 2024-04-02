@@ -1,4 +1,5 @@
 #include "types.h"
+#include "spinlock.h"
 #include "stat.h"
 #include "fcntl.h"
 #include "user.h"
@@ -107,6 +108,8 @@ memmove(void *vdst, const void *vsrc, int n)
 
 void
 minit(mutex* m) {
+  (&m->lk)->locked = 0;
+  (&m->lk)->cpu = 0;
   m->locked = 0;
   m->pid = 0;
 }
