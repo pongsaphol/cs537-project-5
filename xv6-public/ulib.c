@@ -112,5 +112,7 @@ minit(mutex* m) {
   (&m->lk)->cpu = 0;
   m->locked = 0;
   m->pid = 0;
-  m->queue = 0;
+  for (int i = 0; i < 256; i++) {
+    m->queue[i] = 0;
+  }
 }

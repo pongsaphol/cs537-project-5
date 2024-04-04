@@ -94,6 +94,13 @@ found:
   p->nclone = 0;
   p->sleepticks = -1;
   p->chan = 0;
+  p->nice = 0;
+  for (int i = 0; i < 16; i++) {
+    p->mtable[i].m = 0;
+    for (int j = 0; j < 256; j++) {
+      p->mtable[i].queue[j] = 0;
+    }
+  }
 
   release(&ptable.lock);
 
@@ -253,11 +260,6 @@ clone(void (*fn)(void*), void* stack, void* arg)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  // p5 set init nice value to 0
-  np->nice = 0;
-  for (int i = 0; i < 16; ++i) {
-    np->mtable[i] = 0;
-  }
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -393,17 +395,13 @@ int get_proc_nice(struct proc* p) {
   int nice = p->nice;
   // return nice;
   for (int i = 0; i < 16; i++) {
-    if (p->mtable[i] != 0) {
-      cprintf("mtable[%d] is not null\n", i);
-      continue;
-      mutex* m = p->mtable[i];
-      struct ListLink* cur = m->queue;
-      while (cur != 0) {
-        if (cur->process->nice < nice) {
-          nice = cur->process->nice;
+    if (p->mtable[i].m != 0) {
+      for (int j = 0; j < 256; j++) {
+        if (p->mtable[i].queue[j] != 0) {
+          if (p->mtable[i].queue[j]->nice < nice)
+            nice = p->mtable[i].queue[j]->nice;
         }
-        cur = cur->next;
-      }
+      } 
     }
   }
   

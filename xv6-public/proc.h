@@ -59,7 +59,10 @@ struct proc {
   int sleepticks;              // Number of ticks left the process should sleep for
   // p5
   int nice;                    // Nice value of the process
-  struct mutex *mtable[16];     // Mutex table
+  struct {
+    struct mutex *m;
+    struct proc* queue[256];
+  } mtable[16];
 };
 typedef struct {
   struct spinlock lock;

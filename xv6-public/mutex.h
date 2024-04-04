@@ -1,16 +1,11 @@
 #include "types.h"
 #include "spinlock.h"
 
-struct ListLink {
-  struct proc *process;
-  struct ListLink *next;
-};
-
 typedef struct mutex {
   uint locked;       // Is the lock held?
   struct spinlock lk; // spinlock protecting this mutex
   // struct proc *holder;
-  struct ListLink *queue;
+  struct proc* queue[256];
   
   // For debugging:
   char *name;        // Name of lock.

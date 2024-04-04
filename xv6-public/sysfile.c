@@ -452,21 +452,39 @@ sys_macquire(void) {
 
   acquire(&m->lk);
 
-  // add cur proc to list 
-  struct ListLink* newLink = (struct ListLink*)kalloc();
-  newLink->process = myproc();
-  newLink->next = m->queue;
-  m->queue = newLink;
-
   // add mtable entry
   for (int i = 0; i < 16; i++) {
-    if (myproc()->mtable[i] == 0) {
-      myproc()->mtable[i] = m;
+    if (myproc()->mtable[i].m == 0) {
+      myproc()->mtable[i].m = m;
       break;
     }
   }
+  // add cur proc to list 
+  for (int i = 0; i < 256; i++) {
+    if (m->queue[i] == 0) {
+      m->queue[i] = myproc();
+      break;
+    }
+  }
+  // copy mtable to proc
+  for (int i = 0; i < 16; ++i) {
+    for (int j = 0; j < 256; ++j) {
+      if (myproc()->mtable[i].m == m) {
+        myproc()->mtable[i].queue[j] = m->queue[j];
+      }
+    }
+  }
+  
   while (m->locked) {
     sleep(m, &m->lk);
+  }
+  // copy mtable to proc
+  for (int i = 0; i < 16; ++i) {
+    for (int j = 0; j < 256; ++j) {
+      if (myproc()->mtable[i].m == m) {
+        myproc()->mtable[i].queue[j] = m->queue[j];
+      }
+    }
   }
 
   m->locked = 1;
@@ -488,32 +506,21 @@ sys_mrelease(void) {
   // m->holder = 0;
 
   for (int i = 0; i < 16; i++) {
-    if (myproc()->mtable[i] == m) {
-      myproc()->mtable[i] = 0;
+    if (myproc()->mtable[i].m == m) {
+      myproc()->mtable[i].m = 0;
+      for (int j = 0; j < 256; j++) {
+        myproc()->mtable[i].queue[j] = 0;
+      }
       break;
     }
   }
-
   // remove cur proc from list
-  // if (m->queue->process == myproc()) {
-  //   // remove head
-  //   struct ListLink* temp = m->queue->next;
-  //   kfree((char*)m->queue);
-  //   m->queue = temp;
-  // } else {
-  //   struct ListLink* prev = m->queue;
-  //   struct ListLink* cur = m->queue->next;
-  //   while (cur != 0) {
-  //     if (cur->process == myproc()) {
-  //       struct ListLink* temp = cur->next;
-  //       kfree((char*)cur);
-  //       prev->next = temp;
-  //       break;
-  //     }
-  //     prev = cur;
-  //     cur = cur->next;
-  //   }
-  // }  
+  for (int i = 0; i < 256; i++) {
+    if (m->queue[i] == myproc()) {
+      m->queue[i] = 0;
+      break;
+    }
+  }
 
   wakeup(m);
   release(&m->lk);
