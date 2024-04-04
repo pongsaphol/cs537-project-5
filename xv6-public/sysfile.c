@@ -451,36 +451,26 @@ sys_macquire(void) {
     return -1;
 
   acquire(&m->lk);
-  struct ListLink* current = m->queue;
 
-  while (current->next != 0 && current->next->process->nice < myproc()->nice) {
-    current = current->next;
-  }
+  // add cur proc to list 
   struct ListLink* newLink = (struct ListLink*)kalloc();
   newLink->process = myproc();
-  newLink->next = current->next;
-  current->next = newLink;
+  newLink->next = m->queue;
+  m->queue = newLink;
 
-  while (m->locked) {
-    sleep(m, &m->lk);
-  }
-
-  current = m->queue;
-    while (current->next != 0 && current->next->process != myproc()) {
-        current = current->next;
-    }
-    current->next = current->next->next;
-
+  // add mtable entry
   for (int i = 0; i < 16; i++) {
     if (myproc()->mtable[i] == 0) {
       myproc()->mtable[i] = m;
       break;
     }
   }
+  while (m->locked) {
+    sleep(m, &m->lk);
+  }
 
   m->locked = 1;
   m->pid = myproc()->pid;
-  m->holder = myproc();
   release(&m->lk);
   return 0;
 }
@@ -495,7 +485,7 @@ sys_mrelease(void) {
   acquire(&m->lk);
   m->locked = 0;
   m->pid = 0;
-  m->holder = 0;
+  // m->holder = 0;
 
   for (int i = 0; i < 16; i++) {
     if (myproc()->mtable[i] == m) {
@@ -503,6 +493,27 @@ sys_mrelease(void) {
       break;
     }
   }
+
+  // remove cur proc from list
+  if (m->queue->process == myproc()) {
+    // remove head
+    struct ListLink* temp = m->queue->next;
+    kfree((char*)m->queue);
+    m->queue = temp;
+  } else {
+    struct ListLink* prev = m->queue;
+    struct ListLink* cur = m->queue->next;
+    while (cur != 0) {
+      if (cur->process == myproc()) {
+        struct ListLink* temp = cur->next;
+        kfree((char*)cur);
+        prev->next = temp;
+        break;
+      }
+      prev = cur;
+      cur = cur->next;
+    }
+  }  
 
   wakeup(m);
   release(&m->lk);
@@ -514,7 +525,6 @@ int sys_nice(void) {
   if (argint(0, &n) < 0) {
     return -1;
   }
-  // TODO: Implement nice
   struct proc* p = myproc();
   p->nice += n;
   if (p->nice < -20) {

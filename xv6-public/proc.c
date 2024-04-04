@@ -385,6 +385,24 @@ wait(void)
   }
 }
 
+
+int get_proc_nice(struct proc* p) {
+  int nice = p->nice;
+  for (int i = 0; i < 16; i++) {
+    if (p->mtable[i] != 0) {
+      mutex* m = p->mtable[i];
+      struct ListLink* cur = m->queue;
+      while (cur != 0) {
+        if (cur->process->nice < nice) {
+          nice = cur->process->nice;
+        }
+        cur = cur->next;
+      }
+    }
+  }
+  return nice;
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -412,41 +430,17 @@ scheduler(void)
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if (p->state != RUNNABLE)
         continue;
-      int priority = p->nice;
-      for (int i = 0; i < 16; i++) {
-        if (p->mtable[i] != 0) {
-            struct ListLink* current = p->mtable[i]->queue;
-            while (current->next != 0) {
-                struct proc* m = current->next->process;
-                if (m->nice < priority) {
-                    priority = m->nice;
-                }
-                current = current->next;
-            }
-        }
-      }
-      if (priority < lowest_priority) {
-        lowest_priority = priority;
-      }
+      int nice = p->nice;
+      if (nice < lowest_priority)
+        lowest_priority = nice;
     }
     
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-      int priority = p->nice;
-      for (int i = 0; i < 16; i++) {
-        if (p->mtable[i] != 0) {
-            struct ListLink* current = p->mtable[i]->queue;
-            while (current->next != 0) {
-                struct proc* m = current->next->process;
-                if (m->nice < priority) {
-                    priority = m->nice;
-                }
-                current = current->next;
-            }
-        }
-      }
-      if (priority != lowest_priority)
+      
+      int nice = p->nice;
+      if (nice != lowest_priority) 
         continue;
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it

@@ -112,6 +112,5 @@ minit(mutex* m) {
   (&m->lk)->cpu = 0;
   m->locked = 0;
   m->pid = 0;
-  m->holder = 0;
-  m->queue = (struct ListLink *)sbrk(sizeof(struct ListLink));
+  m->queue = 0;
 }
