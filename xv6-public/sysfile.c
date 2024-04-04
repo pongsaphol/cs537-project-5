@@ -468,23 +468,24 @@ sys_macquire(void) {
   }
   // copy mtable to proc
   for (int i = 0; i < 16; ++i) {
-    for (int j = 0; j < 256; ++j) {
-      if (myproc()->mtable[i].m == m) {
-        myproc()->mtable[i].queue[j] = m->queue[j];
+    if (myproc()->mtable[i].m == m) {
+      for (int j = 0; j < 256; ++j) {
+        if (m->queue[j] != 0) {
+          for (int k = 0; k < 16; ++k) {
+            if (m->queue[j]->mtable[k].m == m) {
+              for (int l = 0; l < 256; ++l) {
+                m->queue[j]->mtable[k].queue[l] = m->queue[l];
+              }
+              break;
+            }
+          } 
+        }
       }
     }
   }
   
   while (m->locked) {
     sleep(m, &m->lk);
-  }
-  // copy mtable to proc
-  for (int i = 0; i < 16; ++i) {
-    for (int j = 0; j < 256; ++j) {
-      if (myproc()->mtable[i].m == m) {
-        myproc()->mtable[i].queue[j] = m->queue[j];
-      }
-    }
   }
 
   m->locked = 1;
@@ -508,10 +509,18 @@ sys_mrelease(void) {
   for (int i = 0; i < 16; i++) {
     if (myproc()->mtable[i].m == m) {
       myproc()->mtable[i].m = 0;
-      for (int j = 0; j < 256; j++) {
-        myproc()->mtable[i].queue[j] = 0;
+      for (int j = 0; j < 256; ++j) {
+        if (m->queue[j] != 0) {
+          for (int k = 0; k < 16; ++k) {
+            if (m->queue[j]->mtable[k].m == m) {
+              for (int l = 0; l < 256; ++l) {
+                m->queue[j]->mtable[k].queue[l] = m->queue[l];
+              }
+              break;
+            }
+          } 
+        }
       }
-      break;
     }
   }
   // remove cur proc from list

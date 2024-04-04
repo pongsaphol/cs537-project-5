@@ -404,6 +404,7 @@ int get_proc_nice(struct proc* p) {
       } 
     }
   }
+  // cprintf("proc: %s actual nice: %d, fake nice: %d\n", p->name, p->nice, nice);
   
   return nice;
 }
