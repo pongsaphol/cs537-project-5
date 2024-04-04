@@ -495,25 +495,25 @@ sys_mrelease(void) {
   }
 
   // remove cur proc from list
-  if (m->queue->process == myproc()) {
-    // remove head
-    struct ListLink* temp = m->queue->next;
-    kfree((char*)m->queue);
-    m->queue = temp;
-  } else {
-    struct ListLink* prev = m->queue;
-    struct ListLink* cur = m->queue->next;
-    while (cur != 0) {
-      if (cur->process == myproc()) {
-        struct ListLink* temp = cur->next;
-        kfree((char*)cur);
-        prev->next = temp;
-        break;
-      }
-      prev = cur;
-      cur = cur->next;
-    }
-  }  
+  // if (m->queue->process == myproc()) {
+  //   // remove head
+  //   struct ListLink* temp = m->queue->next;
+  //   kfree((char*)m->queue);
+  //   m->queue = temp;
+  // } else {
+  //   struct ListLink* prev = m->queue;
+  //   struct ListLink* cur = m->queue->next;
+  //   while (cur != 0) {
+  //     if (cur->process == myproc()) {
+  //       struct ListLink* temp = cur->next;
+  //       kfree((char*)cur);
+  //       prev->next = temp;
+  //       break;
+  //     }
+  //     prev = cur;
+  //     cur = cur->next;
+  //   }
+  // }  
 
   wakeup(m);
   release(&m->lk);

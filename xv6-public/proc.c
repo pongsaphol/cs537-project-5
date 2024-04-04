@@ -255,6 +255,9 @@ clone(void (*fn)(void*), void* stack, void* arg)
   *np->tf = *curproc->tf;
   // p5 set init nice value to 0
   np->nice = 0;
+  for (int i = 0; i < 16; ++i) {
+    np->mtable[i] = 0;
+  }
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -388,8 +391,11 @@ wait(void)
 
 int get_proc_nice(struct proc* p) {
   int nice = p->nice;
+  // return nice;
   for (int i = 0; i < 16; i++) {
     if (p->mtable[i] != 0) {
+      cprintf("mtable[%d] is not null\n", i);
+      continue;
       mutex* m = p->mtable[i];
       struct ListLink* cur = m->queue;
       while (cur != 0) {
@@ -400,6 +406,7 @@ int get_proc_nice(struct proc* p) {
       }
     }
   }
+  
   return nice;
 }
 
@@ -430,7 +437,7 @@ scheduler(void)
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if (p->state != RUNNABLE)
         continue;
-      int nice = p->nice;
+      int nice = get_proc_nice(p);
       if (nice < lowest_priority)
         lowest_priority = nice;
     }
@@ -439,7 +446,7 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
       
-      int nice = p->nice;
+      int nice = get_proc_nice(p);
       if (nice != lowest_priority) 
         continue;
       // Switch to chosen process.  It is the process's job
