@@ -101,6 +101,9 @@ exec(char *path, char **argv)
   curproc->tf->esp = sp;
   // p5
   curproc->nice = 0;
+  for (int i = 0; i < 16; i++) {
+    curproc->mtable[i] = 0;
+  }
   switchuvm(curproc);
   freevm(oldpgdir);
   return 0;

@@ -451,12 +451,36 @@ sys_macquire(void) {
     return -1;
 
   acquire(&m->lk);
+  struct ListLink* current = m->queue;
+
+  while (current->next != 0 && current->next->process->nice < myproc()->nice) {
+    current = current->next;
+  }
+  struct ListLink* newLink = (struct ListLink*)kalloc();
+  newLink->process = myproc();
+  newLink->next = current->next;
+  current->next = newLink;
+
   while (m->locked) {
     sleep(m, &m->lk);
   }
 
+  current = m->queue;
+    while (current->next != 0 && current->next->process != myproc()) {
+        current = current->next;
+    }
+    current->next = current->next->next;
+
+  for (int i = 0; i < 16; i++) {
+    if (myproc()->mtable[i] == 0) {
+      myproc()->mtable[i] = m;
+      break;
+    }
+  }
+
   m->locked = 1;
   m->pid = myproc()->pid;
+  m->holder = myproc();
   release(&m->lk);
   return 0;
 }
@@ -471,6 +495,15 @@ sys_mrelease(void) {
   acquire(&m->lk);
   m->locked = 0;
   m->pid = 0;
+  m->holder = 0;
+
+  for (int i = 0; i < 16; i++) {
+    if (myproc()->mtable[i] == m) {
+      myproc()->mtable[i] = 0;
+      break;
+    }
+  }
+
   wakeup(m);
   release(&m->lk);
   return 0;

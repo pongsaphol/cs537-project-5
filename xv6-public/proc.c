@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "mutex.h"
 
 Ptable ptable;
 
@@ -411,15 +412,41 @@ scheduler(void)
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if (p->state != RUNNABLE)
         continue;
-      if (p->nice < lowest_priority) {
-        lowest_priority = p->nice;
+      int priority = p->nice;
+      for (int i = 0; i < 16; i++) {
+        if (p->mtable[i] != 0) {
+            struct ListLink* current = p->mtable[i]->queue;
+            while (current->next != 0) {
+                struct proc* m = current->next->process;
+                if (m->nice < priority) {
+                    priority = m->nice;
+                }
+                current = current->next;
+            }
+        }
+      }
+      if (priority < lowest_priority) {
+        lowest_priority = priority;
       }
     }
     
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-      if (p->nice != lowest_priority)
+      int priority = p->nice;
+      for (int i = 0; i < 16; i++) {
+        if (p->mtable[i] != 0) {
+            struct ListLink* current = p->mtable[i]->queue;
+            while (current->next != 0) {
+                struct proc* m = current->next->process;
+                if (m->nice < priority) {
+                    priority = m->nice;
+                }
+                current = current->next;
+            }
+        }
+      }
+      if (priority != lowest_priority)
         continue;
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
