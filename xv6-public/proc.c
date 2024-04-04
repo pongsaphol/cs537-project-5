@@ -432,19 +432,21 @@ scheduler(void)
     acquire(&ptable.lock);
     // p5
     // Find the process with the lowest nice value
-    int lowest_priority = 20;
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-      if (p->state != RUNNABLE)
-        continue;
-      int nice = get_proc_nice(p);
-      if (nice < lowest_priority)
-        lowest_priority = nice;
-    }
+    
     
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-      
+        
+      int lowest_priority = 20;
+      for (struct proc *p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++) {
+        if (p2->state != RUNNABLE)
+          continue;
+        int nice = get_proc_nice(p2);
+        if (nice < lowest_priority)
+          lowest_priority = nice;
+      }
+
       int nice = get_proc_nice(p);
       if (nice != lowest_priority) 
         continue;
